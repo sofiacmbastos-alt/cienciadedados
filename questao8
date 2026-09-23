@@ -1,0 +1,112 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    ConfusionMatrixDisplay,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+)
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+
+# 1. Carregar a base de dados
+df = pd.read_csv("dados/publicacoes_analise.csv")
+
+# 2. Criar a variável-alvo (percentil 75 da taxa_engajamento_pct)
+p75 = df["taxa_engajamento_pct"].quantile(0.75)
+df["mereceu_divulgacao_adicional"] = (
+    df["taxa_engajamento_pct"] > p75
+).astype(int)
+
+# 3. Seleção de características pré-publicação
+colunas_features = [
+    "tema",
+    "formato",
+    "seguidores_autor",
+    "videos_autor",
+    "tamanho_legenda",
+    "n_emojis",
+    "n_hashtags",
+    "hora",
+    "dia_semana",
+    "duracao_segundos",
+]
+
+cols_existentes = [c for c in colunas_features if c in df.columns]
+X = pd.get_dummies(df[cols_existentes], drop_first=True)
+y = df["mereceu_divulgacao_adicional"]
+
+# 4. Divisão Treino (75%) / Teste (25%) preservando proporção da classe (stratify)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=42, stratify=y
+)
+
+# 5. Definir e treinar os 3 classificadores escolhidos
+modelos = {
+    "Regressão Logística": LogisticRegression(random_state=42, max_iter=1000),
+    "Árvore de Classificação": DecisionTreeClassifier(random_state=42),
+    "Random Forest": RandomForestClassifier(random_state=42),
+}
+
+resultados = []
+preds = {}
+
+for nome, modelo in modelos.items():
+    modelo.fit(X_train, y_train)
+    y_pred = modelo.predict(X_test)
+    preds[nome] = y_pred
+
+    resultados.append(
+        {
+            "Modelo": nome,
+            "Precisao": precision_score(y_test, y_pred, zero_division=0),
+            "Recall": recall_score(y_test, y_pred, zero_division=0),
+            "F1": f1_score(y_test, y_pred, zero_division=0),
+        }
+    )
+
+df_resultados = pd.DataFrame(resultados).sort_values(by="F1", ascending=False)
+
+print("--- Comparação dos Classificadores ---")
+print(df_resultados)
+
+# 6. Exibir Matriz de Confusão do modelo com maior F1
+melhor_modelo_nome = df_resultados.iloc[0]["Modelo"]
+cm = confusion_matrix(y_test, preds[melhor_modelo_nome])
+
+disp = ConfusionMatrixDisplay(
+    confusion_matrix=cm, display_labels=["Não Merece", "Merece"]
+)
+disp.plot(cmap="Blues")
+plt.title(f"Matriz de Confusão ({melhor_modelo_nome})")
+plt.show()
+
+# 7. Regressão Logística: Comparação entre cortes 0.50 e 0.30
+modelo_log = modelos["Regressão Logística"]
+probas = modelo_log.predict_proba(X_test)[:, 1]
+
+pred_050 = (probas >= 0.50).astype(int)
+pred_030 = (probas >= 0.30).astype(int)
+
+df_cortes = pd.DataFrame(
+    [
+        {
+            "Corte": "0.50",
+            "Precisao": precision_score(y_test, pred_050, zero_division=0),
+            "Recall": recall_score(y_test, pred_050, zero_division=0),
+            "F1": f1_score(y_test, pred_050, zero_division=0),
+        },
+        {
+            "Corte": "0.30",
+            "Precisao": precision_score(y_test, pred_030, zero_division=0),
+            "Recall": recall_score(y_test, pred_030, zero_division=0),
+            "F1": f1_score(y_test, pred_030, zero_division=0),
+        },
+    ]
+)
+
+print("\n--- Comparação dos Cortes da Regressão Logística ---")
+print(df_cortes)
