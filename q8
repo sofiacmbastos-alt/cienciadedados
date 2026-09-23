@@ -1,0 +1,3 @@
+Decisão e Riscos de Erro (Regressão Logística, Corte 0.50):
+
+O modelo escolhido foi a Regressão Logística com corte 0.50, por apresentar o maior valor de F1-score (0,875). Para a equipe de comunicação, um falso positivo representa o desperdício de verba ao impulsionar uma postagem de baixo engajamento, enquanto um falso negativo significa deixar de promover uma publicação com alto potencial de alcance. Com um Recall de 1,00, a decisão garante que 100% das postagens promissoras serão identificadas (zero falsos negativos), mitigando o risco de perder boas oportunidades de divulgação, ao mesmo tempo em que mantém uma elevada Precisão (0,78) para evitar o uso ineficiente dos recursos escassos do festival.
