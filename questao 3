@@ -1,0 +1,68 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# 1. Carregar a base de análise
+df_analise = pd.read_csv("dados/publicacoes_analise.csv")
+
+# 2. Criar a métrica taxa_utilidade_pct
+# Nota: Garantimos que o alcance não seja zero/negativo para evitar divisão por zero
+df_analise.loc[df_analise["alcance"] <= 0, "alcance"] = None
+
+df_analise["taxa_utilidade_pct"] = (
+    (df_analise["compartilhamentos"] + df_analise["salvamentos"])
+    / df_analise["alcance"]
+    * 100
+)
+
+# 3. Tabela agregada por tema com a mediana da taxa de utilidade
+tabela_mediana_tema = (
+    df_analise.groupby("tema")["taxa_utilidade_pct"]
+    .median()
+    .reset_index()
+    .sort_values(by="taxa_utilidade_pct", ascending=False)
+)
+
+print("--- Mediana da Taxa de Utilidade por Tema ---")
+print(tabela_mediana_tema)
+
+# 4. Construção do gráfico de barras
+plt.figure(figsize=(9, 5))
+bars = plt.bar(
+    tabela_mediana_tema["tema"],
+    tabela_mediana_tema["taxa_utilidade_pct"],
+    color="#2b5c8f",
+)
+
+# Rótulos de dados sobre as barras
+for bar in bars:
+    yval = bar.get_height()
+    plt.text(
+        bar.get_x() + bar.get_width() / 2.0,
+        yval + 0.1,
+        f"{yval:.1f}%",
+        ha="center",
+        va="bottom",
+        fontsize=9,
+    )
+
+# Título e Eixos
+plt.title(
+    "Qual tema gera maior taxa de utilidade (salvamentos + compartilhamentos)?",
+    fontsize=12,
+    pad=15,
+)
+plt.xlabel("Tema da Publicação", fontsize=10)
+plt.ylabel("Mediana da Taxa de Utilidade (%)", fontsize=10)
+
+# Fonte / Nota de rodapé
+plt.annotate(
+    "Fonte: dados sintéticos do Festival ViraBairro (2026)",
+    xy=(1, -0.18),
+    xycoords="axes fraction",
+    ha="right",
+    fontsize=8,
+    color="gray",
+)
+
+plt.tight_layout()
+plt.show()
