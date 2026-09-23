@@ -1,0 +1,98 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.metrics import mean_absolute_error, r2_score
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
+
+# 1. Carregar os dados
+df_est = pd.read_csv("dados/publicacoes_analise.csv")
+
+# 2. Definir a variável alvo e as características (apenas pré-publicação)
+y = df_est["taxa_engajamento_pct"]
+
+colunas_features = [
+    "tema",
+    "formato",
+    "seguidores_autor",
+    "videos_autor",
+    "tamanho_legenda",
+    "n_emojis",
+    "n_hashtags",
+    "hora",
+    "dia_semana",
+    "duracao_segundos",
+]
+
+# Filtrar colunas existentes e converter categóricas em numéricas via One-Hot Encoding
+cols_existentes = [c for c in colunas_features if c in df_est.columns]
+X = pd.get_dummies(df_est[cols_existentes], drop_first=True)
+
+# 3. Divisão Treino/Teste (75% treino, 25% teste)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=42
+)
+
+# 4. Ajustar os dois modelos
+# Modelo 1: Regressão Linear
+lr = LinearRegression()
+lr.fit(X_train, y_train)
+y_pred_lr = lr.predict(X_test)
+
+# Modelo 2: Árvore de Regressão (profundidade máxima 4)
+tree = DecisionTreeRegressor(max_depth=4, random_state=42)
+tree.fit(X_train, y_train)
+y_pred_tree = tree.predict(X_test)
+
+# 5. Tabela comparativa de MAE e R²
+mae_lr = mean_absolute_error(y_test, y_pred_lr)
+r2_lr = r2_score(y_test, y_pred_lr)
+
+mae_tree = mean_absolute_error(y_test, y_pred_tree)
+r2_tree = r2_score(y_test, y_pred_tree)
+
+tabela_comparativa = pd.DataFrame(
+    {
+        "Modelo": ["Regressão Linear", "Árvore de Regressão"],
+        "MAE": [mae_lr, mae_tree],
+        "R2": [r2_lr, r2_tree],
+    }
+)
+
+print("--- Comparação dos Modelos ---")
+print(tabela_comparativa)
+
+# 6. Selecionar o modelo com menor MAE para o gráfico
+if mae_lr < mae_tree:
+    melhor_modelo_nome = "Regressão Linear"
+    y_pred_melhor = y_pred_lr
+else:
+    melhor_modelo_nome = "Árvore de Regressão"
+    y_pred_melhor = y_pred_tree
+
+# 7. Gráfico de Dispersão (Valores Reais vs Previstos)
+plt.figure(figsize=(7, 6))
+plt.scatter(y_test, y_pred_melhor, alpha=0.7, color="#2b5c8f", label="Previsões")
+
+# Linha de referência (onde valor real = valor previsto)
+lim_min = min(y_test.min(), y_pred_melhor.min())
+lim_max = max(y_test.max(), y_pred_melhor.max())
+plt.plot(
+    [lim_min, lim_max],
+    [lim_min, lim_max],
+    color="red",
+    linestyle="--",
+    linewidth=2,
+    label="Previsão Perfeita (1:1)",
+)
+
+plt.title(
+    f"Valores Reais vs Previstos ({melhor_modelo_nome})", fontsize=12, pad=15
+)
+plt.xlabel("Taxa de Engajamento Real (%)", fontsize=10)
+plt.ylabel("Taxa de Engajamento Prevista (%)", fontsize=10)
+plt.legend()
+plt.grid(True, linestyle="--", alpha=0.5)
+plt.tight_layout()
+plt.show()
