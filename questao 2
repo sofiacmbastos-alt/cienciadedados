@@ -89,3 +89,13 @@ tabela_tema = (
 
 print("\nTabela por tema:")
 print(tabela_tema)
+
+
+
+
+
+
+
+
+
+O código realiza a limpeza, padronização de textos e conversão de tipos de dados para remover duplicatas, tratar valores nulos ou inválidos e calcular com segurança a mediana da taxa de utilidade percentual das publicações por tema.
