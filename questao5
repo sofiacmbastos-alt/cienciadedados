@@ -1,0 +1,72 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# 1. Carregar os dados de análise
+df_analise = pd.read_csv("dados/publicacoes_analise.csv")
+
+# 2. Tabela agregada por combinação de Tema e Formato
+tabela_combinada = (
+    df_analise.groupby(["tema", "formato"])
+    .agg(
+        numero_publicacoes=("id_publicacao", "count"),
+        mediana_taxa_engajamento_pct=("taxa_engajamento_pct", "median"),
+    )
+    .reset_index()
+    .sort_values(by="mediana_taxa_engajamento_pct", ascending=False)
+)
+
+# Criar coluna auxiliar de rótulo para o gráfico
+tabela_combinada["combina_label"] = (
+    tabela_combinada["tema"] + " - " + tabela_combinada["formato"]
+)
+
+print("--- Tabela por Tema e Formato ---")
+print(
+    tabela_combinada[
+        ["tema", "formato", "numero_publicacoes", "mediana_taxa_engajamento_pct"]
+    ]
+)
+
+# 3. Gráfico de barras comparando as combinações
+plt.figure(figsize=(11, 6))
+bars = plt.bar(
+    tabela_combinada["combina_label"],
+    tabela_combinada["mediana_taxa_engajamento_pct"],
+    color="#2b5c8f",
+)
+
+# Adicionar valores no topo das barras
+for bar in bars:
+    yval = bar.get_height()
+    plt.text(
+        bar.get_x() + bar.get_width() / 2.0,
+        yval + 0.1,
+        f"{yval:.1f}%",
+        ha="center",
+        va="bottom",
+        fontsize=8,
+    )
+
+# Título e Eixos
+plt.title(
+    "Mediana da Taxa de Engajamento por Combinação de Tema e Formato",
+    fontsize=12,
+    pad=15,
+)
+plt.xlabel("Combinação (Tema - Formato)", fontsize=10)
+plt.ylabel("Mediana da Taxa de Engajamento (%)", fontsize=10)
+plt.xticks(rotation=45, ha="right")
+plt.grid(axis="y", linestyle="--", alpha=0.5)
+
+# Indicação da fonte no gráfico
+plt.annotate(
+    "Fonte: dados sintéticos do Festival ViraBairro (2026)",
+    xy=(1, -0.32),
+    xycoords="axes fraction",
+    ha="right",
+    fontsize=8,
+    color="gray",
+)
+
+plt.tight_layout()
+plt.show()
