@@ -1,0 +1,91 @@
+import pandas as pd
+import numpy as np
+
+# 1. Carregar a base bruta em uma nova variável
+dados = pd.read_csv("dados/publicacoes_brutas.csv")
+
+# Conferir os nomes das colunas
+print("Colunas:")
+print(dados.columns.tolist())
+
+
+# 2. Remover duplicidades por id_publicacao
+dados = dados.drop_duplicates(
+    subset="id_publicacao",
+    keep="first"
+)
+
+
+# 3. Padronizar os valores de tema
+dados["tema"] = (
+    dados["tema"]
+    .astype("string")
+    .str.strip()
+    .str.lower()
+)
+
+# Veja primeiro quais valores existem:
+print("\nTemas encontrados:")
+print(dados["tema"].unique())
+
+# Depois, se necessário, acrescente as variações encontradas:
+mapa_temas = {
+    # "cultura e arte": "cultura",
+    # "cultura/arte": "cultura",
+    # "mobilidade urbana": "mobilidade",
+}
+
+dados["tema"] = dados["tema"].replace(mapa_temas)
+
+
+# 4. Converter data para formato adequado
+dados["data_publicacao"] = pd.to_datetime(
+    dados["data_publicacao"],
+    errors="coerce",
+    dayfirst=True
+)
+
+
+# 5. Converter as colunas usadas no cálculo para números
+colunas_numericas = [
+    "compartilhamentos",
+    "salvamentos",
+    "alcance"
+]
+
+for coluna in colunas_numericas:
+    dados[coluna] = pd.to_numeric(
+        dados[coluna],
+        errors="coerce"
+    )
+
+
+# 6. Valores inválidos de alcance não podem ser usados
+# como denominador. Transformamos alcance <= 0 em ausente.
+dados.loc[dados["alcance"] <= 0, "alcance"] = np.nan
+
+
+# 7. Criar taxa de utilidade
+dados["taxa_utilidade_pct"] = (
+    (dados["compartilhamentos"] + dados["salvamentos"])
+    / dados["alcance"]
+    * 100
+)
+
+
+# 8. Tabela por tema
+tabela_tema = (
+    dados
+    .groupby("tema", dropna=False)
+    .agg(
+        numero_publicacoes=("id_publicacao", "count"),
+        mediana_taxa_utilidade_pct=("taxa_utilidade_pct", "median")
+    )
+    .sort_values(
+        "mediana_taxa_utilidade_pct",
+        ascending=False
+    )
+)
+
+print("\nTabela por tema:")
+print(tabela_tema)
