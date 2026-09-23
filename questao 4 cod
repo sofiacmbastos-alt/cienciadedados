@@ -1,0 +1,86 @@
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# 1. Carregar a base de dados
+df_diario = pd.read_csv("dados/publicacoes_analise.csv")
+
+# 2. Conversão segura de datas (format="mixed" evita erros de sintaxe)
+df_diario["data_publicacao"] = pd.to_datetime(
+    df_diario["data_publicacao"], format="mixed"
+)
+df_diario["dia_publicacao"] = df_diario["data_publicacao"].dt.date
+
+# 3. Tabela agregada por dia_publicacao
+tabela_diaria = (
+    df_diario.groupby("dia_publicacao")
+    .agg(
+        quantidade_publicacoes=("id_publicacao", "count"),
+        media_taxa_engajamento_pct=("taxa_engajamento_pct", "mean"),
+        alcance_total=("alcance", "sum"),
+    )
+    .reset_index()
+    .sort_values(by="dia_publicacao", ascending=True)
+)
+
+print("--- Tabela de Acompanhamento Diário ---")
+print(tabela_diaria)
+
+# 4. Gráfico de linhas do engajamento médio por dia
+plt.figure(figsize=(10, 5))
+plt.plot(
+    tabela_diaria["dia_publicacao"],
+    tabela_diaria["media_taxa_engajamento_pct"],
+    marker="o",
+    linestyle="-",
+    color="#2b5c8f",
+)
+
+plt.title(
+    "Variação da Taxa Média de Engajamento por Dia", fontsize=12, pad=15
+)
+plt.xlabel("Dia de Publicação", fontsize=10)
+plt.ylabel("Média da Taxa de Engajamento (%)", fontsize=10)
+plt.xticks(rotation=45)
+plt.grid(True, linestyle="--", alpha=0.5)
+
+# Indicação da fonte no próprio gráfico
+plt.annotate(
+    "Fonte: dados sintéticos do Festival ViraBairro (2026)",
+    xy=(1, -0.22),
+    xycoords="axes fraction",
+    ha="right",
+    fontsize=8,
+    color="gray",
+)
+
+plt.tight_layout()
+plt.show()
+
+# 5. Recorte de Reels publicados a partir das 18h
+# Extração direta da hora para evitar falhas de tipo de dados
+df_diario["hora_num"] = (
+    pd.to_datetime(df_diario["hora"].astype(str), format="%H:%M", errors="coerce").dt.hour
+    if df_diario["hora"].dtype == "object"
+    else df_diario["hora"]
+)
+
+recorte_reels_noite = df_diario[
+    (df_diario["formato"].astype(str).str.lower() == "reel")
+    & (df_diario["hora_num"] >= 18)
+]
+
+# Top 5 com as colunas pedidas na questão
+top5_reels_noite = recorte_reels_noite.nlargest(
+    5, "taxa_engajamento_pct"
+)[
+    [
+        "id_publicacao",
+        "dia_publicacao",
+        "hora",
+        "tema",
+        "taxa_engajamento_pct",
+    ]
+]
+
+print("\n--- Top 5 Reels Noturnos (>= 18h) ---")
+print(top5_reels_noite)
