@@ -1,0 +1,68 @@
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+
+# 1. Carregar os dados de análise
+df_arvore = pd.read_csv("dados/publicacoes_analise.csv")
+
+# 2. Criar a variável alvo: percentil 75 da taxa_engajamento_pct
+p75 = df_arvore["taxa_engajamento_pct"].quantile(0.75)
+df_arvore["mereceu_divulgacao_adicional"] = (
+    df_arvore["taxa_engajamento_pct"] >= p75
+).astype(int)
+
+# 3. Seleção de características disponíveis antes da publicação (Questão 8)
+# Converte variáveis categóricas (como 'tema', 'formato') em colunas numéricas via One-Hot Encoding
+colunas_features = [
+    "tema",
+    "formato",
+    "hora",
+    "tamanho_legenda",
+    "historico_perfil",
+]
+# Ajustamos para incluir apenas as colunas que realmente existem na base de dados
+X = pd.get_dummies(
+    df_arvore[
+        [c for c in colunas_features if c in df_arvore.columns]
+    ],
+    drop_first=True,
+)
+y = df_arvore["mereceu_divulgacao_adicional"]
+
+# 4. Divisão Treino/Teste (75% treino, 25% teste com amostragem estratificada)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=42, stratify=y
+)
+
+# 5. Ajustar a Árvore de Decisão
+clf = DecisionTreeClassifier(
+    max_depth=4, class_weight="balanced", random_state=42
+)
+clf.fit(X_train, y_train)
+
+# 6. Tabela e Gráfico com as 5 características mais importantes
+df_importancias = (
+    pd.DataFrame(
+        {"caracteristica": X.columns, "importancia": clf.feature_importances_}
+    )
+    .sort_values(by="importancia", ascending=False)
+    .head(5)
+)
+
+print("--- Top 5 Características Mais Importantes ---")
+print(df_importancias)
+
+# Gráfico de Barras Horizontal
+plt.figure(figsize=(8, 4))
+plt.barh(
+    df_importancias["caracteristica"][::-1],
+    df_importancias["importancia"][::-1],
+    color="#2b5c8f",
+)
+plt.title("Top 5 Importâncias de Características da Árvore de Decisão")
+plt.xlabel("Importância Relativa (Gini / Ganho de Informação)")
+plt.ylabel("Característica")
+plt.tight_layout()
+plt.show()
