@@ -1,0 +1,15 @@
+import pandas as pd
+
+
+df = pd.read_csv("dados/publicacoes_brutas.csv")
+
+
+print("Cinco primeiras linhas:")
+print(df.head())
+
+
+print("\nQuantidade de linhas:", df.shape[0])
+print("Quantidade de colunas:", df.shape[1])
+
+
+ausentes = df.isna().sum()
