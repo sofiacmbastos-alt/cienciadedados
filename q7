@@ -1,0 +1,8 @@
+Tipo de Aprendizado:
+O tipo de aprendizado correto é a regressão, pois a variável-alvo (taxa_engajamento_pct) é um número contínuo (porcentagem), e não uma categoria ou classe.
+
+Métricas e Modelo Escolhido:
+O MAE (Erro Absoluto Médio) mede a distância média, em pontos percentuais, entre o valor que o modelo previu e o resultado real. O modelo escolhido foi o [Inserir Modelo com Menor MAE: Regressão Linear ou Árvore de Regressão], por ter apresentado o menor erro médio nas previsões da base de teste.
+
+Limitação:
+O modelo aponta apenas correlações nos dados passados e não prova causalidade, ou seja, alterar um elemento (como mudar a hora ou aumentar hashtags) não garante que o engajamento vá mudar na prática.
